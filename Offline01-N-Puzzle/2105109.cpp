@@ -1,4 +1,4 @@
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
 
 int Hamming_Distance(vector<vector<int>> &Board, int n)
@@ -33,7 +33,7 @@ int Manhatten_Distance(vector<vector<int>> &Board, int n)
     return count;
 }
 
-int Euclidean_Distance(vector<vector<int>> &Board,int n)
+int Euclidean_Distance(vector<vector<int>> &Board, int n)
 {
     int count = 0;
     for (int i = 0; i < n; i++)
@@ -67,7 +67,7 @@ int Linear_Conflict(vector<vector<int>> &Board, int n)
             }
         }
     }
-    return count;
+    return count + Manhatten_Distance(Board, n);
 }
 int Inversion_Count(vector<vector<int>> &Board, int n)
 {
@@ -90,6 +90,7 @@ int Inversion_Count(vector<vector<int>> &Board, int n)
             if (arr[i] > arr[j])
             {
                 count++;
+                cout<<arr[i]<<" "<<arr[j]<<endl;
             }
         }
     }
@@ -98,23 +99,60 @@ int Inversion_Count(vector<vector<int>> &Board, int n)
 
 void solve_N_Puzzle(vector<vector<int>> &Board, int n)
 {
-    
 }
+bool isOdd(int n)
+{
+    return n % 2 != 0;
+}
+bool isEven(int n)
+{
+    return n % 2 == 0;
+}
+/*
+0->3
+1->2
+2->1
+*/
 
 int main()
 {
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
     int n;
-    cin>>n;
+    cin >> n;
+    int blank_row;
     vector<vector<int>> Board(n, vector<int>(n));
-    for(int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
         {
             cin >> Board[i][j];
+            if (Board[i][j] == 0)
+            {
+                blank_row = n - i;
+            }
         }
     }
-    
+    if (isOdd(n))
+    {
+        if (isOdd(Inversion_Count(Board, n)))
+            cout << "Unsolvable puzzle\n";
+        else
+            solve_N_Puzzle(Board, n);
+    }
+    else
+    {
+        bool firs_Condition = isEven(blank_row) && isOdd(Inversion_Count(Board, n));
+        bool second_Condition = isOdd(blank_row) && isEven(Inversion_Count(Board, n));
+        if (firs_Condition || second_Condition)
+        {
+            solve_N_Puzzle(Board, n);
+        }
+        else
+        {
+            cout << "Unsolvable puzzle\n";
+        }
+    }
+
     return 0;
 }
