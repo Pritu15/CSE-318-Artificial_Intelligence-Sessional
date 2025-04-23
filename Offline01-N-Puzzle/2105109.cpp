@@ -1,157 +1,191 @@
-#include <bits/stdc++.h>
+#include "2105109_Heuristics.h"
 using namespace std;
+map<vector<vector<int>>, bool> visited;
 
-int Hamming_Distance(vector<vector<int>> &Board, int n)
+class State
 {
-    int count = 0;
-    for (int i = 0; i < n; i++)
+    vector<vector<int>> Board;
+    int priority;
+    int moves;
+    State *parent;
+public:
+    State(vector<vector<int>> Board, int priority, int moves, State *parent = nullptr)
     {
-        for (int j = 0; j < n; j++)
+        this->Board = Board;
+        this->priority = priority;
+        this->moves = moves;
+        this->parent = parent;
+    }
+    vector<vector<int>>& getBoard()
+    {
+        return Board;
+    }
+    int getPriority()
+    {
+        return priority;
+    }
+    int getMoves()
+    {
+        return moves;
+    }
+    State *getParent()
+    {
+        return parent;
+    }
+    void setNext(State *next)
+    {
+        this->parent = next;
+    }
+};
+pair<int, int> getBlankTilePosition(vector<vector<int>> &Board)
+{
+    for (int i = 0; i < Board.size(); i++)
+    {
+        for (int j = 0; j < Board[i].size(); j++)
         {
-            if (Board[i][j] != 0 && Board[i][j] != (i * n + j + 1))
+            if (Board[i][j] == 0)
             {
-                count++;
+                return {i, j};
             }
         }
     }
-    return count;
+    return {-1, -1}; 
 }
-int Manhatten_Distance(vector<vector<int>> &Board, int n)
+void PrintBoard(const vector<vector<int>> &Board)
 {
-    int count = 0;
-    for (int i = 0; i < n; i++)
+    for (const auto &row : Board)
     {
-        for (int j = 0; j < n; j++)
+        for (const auto &val : row)
         {
-            if (Board[i][j] != 0)
-            {
-                int x = Board[i][j] - 1;
-                count += abs(i - x / n) + abs(j - x % n);
-            }
+            cout << val << " ";
         }
+        cout << endl;
     }
-    return count;
+    cout << endl;
 }
-
-int Euclidean_Distance(vector<vector<int>> &Board, int n)
+void Print(State *goal)
 {
-    int count = 0;
-    for (int i = 0; i < n; i++)
+    State *current = goal;
+    vector<vector<vector<int>>> path;
+    while (current != nullptr)
     {
-        for (int j = 0; j < n; j++)
+        path.push_back(current->getBoard());
+        current = current->getParent();
+    }
+    reverse(path.begin(), path.end());
+    for (const auto &board : path)
+    {
+        for (const auto &row : board)
         {
-            if (Board[i][j] != 0)
+            for (const auto &val : row)
             {
-                int x = Board[i][j] - 1;
-                count += sqrt(pow(i - x / n, 2) + pow(j - x % n, 2));
+                cout << val << " ";
             }
+            cout << endl;
         }
+        cout << endl;
     }
-    return count;
 }
-
-int Linear_Conflict(vector<vector<int>> &Board, int n)
+void a_Star(State *start, State *goal)
 {
-    int count = 0;
-    for (int i = 0; i < n; i++)
+    priority_queue<pair<int, State *>, vector<pair<int, State *>>, greater<pair<int, State *>>> pq;
+    pq.push({0, start});
+    visited[start->getBoard()] = true;
+
+    while (!pq.empty())
     {
-        for (int j = 0; j < n; j++)
+        auto current = pq.top();
+        pq.pop();
+        State *currentState = current.second;
+        // PrintBoard(currentState->getBoard());
+
+        if (currentState->getBoard() == goal->getBoard())
         {
-            if (Board[i][j] != 0)
+            cout << "Minimum number of moves = " << currentState->getMoves() << "\n\n";
+            Print(currentState);
+            return;
+        }
+
+        vector<vector<int>> currentBoard = currentState->getBoard();
+        int n = currentBoard.size();
+        int blank_x, blank_y;
+
+        blank_x = getBlankTilePosition(currentBoard).first;
+        blank_y = getBlankTilePosition(currentBoard).second;
+
+        vector<pair<int, int>> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        for (auto dir : directions)
+        {
+            int new_x = blank_x + dir.first;
+            int new_y = blank_y + dir.second;
+
+            if (new_x >= 0 && new_x < n && new_y >= 0 && new_y < n)
             {
-                int x = Board[i][j] - 1;
-                if (i == x / n)
+                vector<vector<int>> newBoard = currentBoard;
+                swap(newBoard[blank_x][blank_y], newBoard[new_x][new_y]);
+
+                if (!visited[newBoard])
                 {
-                    count += abs(j - x % n);
+                    int newPriority = currentState->getMoves() + Manhatten_Distance(newBoard); // Update priority (can include heuristic)
+                    State *newState = new State(newBoard, newPriority, currentState->getMoves() + 1, currentState);
+                    // PrintBoard(newState->getParent()->getBoard());  
+                    pq.push({newPriority, newState});
+                    visited[newBoard] = true;
                 }
             }
         }
     }
-    return count + Manhatten_Distance(Board, n);
-}
-int Inversion_Count(vector<vector<int>> &Board, int n)
-{
-    int count = 0;
-    vector<int> arr;
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            if (Board[i][j] != 0)
-            {
-                arr.push_back(Board[i][j]);
-            }
-        }
-    }
-    for (int i = 0; i < arr.size(); i++)
-    {
-        for (int j = i + 1; j < arr.size(); j++)
-        {
-            if (arr[i] > arr[j])
-            {
-                count++;
-                cout<<arr[i]<<" "<<arr[j]<<endl;
-            }
-        }
-    }
-    return count;
 }
 
-void solve_N_Puzzle(vector<vector<int>> &Board, int n)
+bool isSolvable(int k, vector<vector<int>> &Board_Input)
 {
+    int blank_row = getBlankTilePosition(Board_Input).first;
+    if (k % 2 == 1)
+    {
+        return Inversion_Count(Board_Input, k) % 2 == 0;
+    }
+    else
+    {
+        bool first_Condition = (blank_row % 2 == 0) && (Inversion_Count(Board_Input, k) % 2 == 1);
+        bool second_Condition = (blank_row % 2 == 1) && (Inversion_Count(Board_Input, k) % 2 == 0);
+        return (first_Condition || second_Condition);
+    }
 }
-bool isOdd(int n)
-{
-    return n % 2 != 0;
-}
-bool isEven(int n)
-{
-    return n % 2 == 0;
-}
-/*
-0->3
-1->2
-2->1
-*/
+
+
 
 int main()
 {
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
-    int n;
-    cin >> n;
-    int blank_row;
-    vector<vector<int>> Board(n, vector<int>(n));
-    for (int i = 0; i < n; i++)
+
+    int n, k;
+    cin >> k;
+    n = k * k;
+    vector<vector<int>> Board_Input(k, vector<int>(k));
+    vector<vector<int>> Final_Board(k, vector<int>(k));
+
+    for (int i = 0; i < k; i++)
     {
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < k; j++)
         {
-            cin >> Board[i][j];
-            if (Board[i][j] == 0)
-            {
-                blank_row = n - i;
-            }
+            cin >> Board_Input[i][j];
+            Final_Board[i][j] = i * k + j + 1;
         }
     }
-    if (isOdd(n))
+    Final_Board[k - 1][k - 1] = 0;
+    if (isSolvable(k, Board_Input))
     {
-        if (isOdd(Inversion_Count(Board, n)))
-            cout << "Unsolvable puzzle\n";
-        else
-            solve_N_Puzzle(Board, n);
+        // cout << "The puzzle is solvable.\n";
+        State *start = new State(Board_Input, 0, 0);
+        State *goal = new State(Final_Board, 0, 0);
+        a_Star(start, goal);
+        // Print(start);
     }
     else
     {
-        bool firs_Condition = isEven(blank_row) && isOdd(Inversion_Count(Board, n));
-        bool second_Condition = isOdd(blank_row) && isEven(Inversion_Count(Board, n));
-        if (firs_Condition || second_Condition)
-        {
-            solve_N_Puzzle(Board, n);
-        }
-        else
-        {
-            cout << "Unsolvable puzzle\n";
-        }
+        cout << "The puzzle is not solvable.\n";
     }
 
     return 0;
