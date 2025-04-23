@@ -4,19 +4,22 @@ map<vector<vector<int>>, bool> visited;
 
 class State
 {
+public:
     vector<vector<int>> Board;
     int priority;
+    int hieuristic;
     int moves;
     State *parent;
-public:
-    State(vector<vector<int>> Board, int priority, int moves, State *parent = nullptr)
+
+    State(vector<vector<int>> Board, int priority, int hieuristic, int moves, State *parent = nullptr)
     {
         this->Board = Board;
         this->priority = priority;
+        this->hieuristic = hieuristic;
         this->moves = moves;
         this->parent = parent;
     }
-    vector<vector<int>>& getBoard()
+    vector<vector<int>> &getBoard()
     {
         return Board;
     }
@@ -32,10 +35,6 @@ public:
     {
         return parent;
     }
-    void setNext(State *next)
-    {
-        this->parent = next;
-    }
 };
 pair<int, int> getBlankTilePosition(vector<vector<int>> &Board)
 {
@@ -49,20 +48,9 @@ pair<int, int> getBlankTilePosition(vector<vector<int>> &Board)
             }
         }
     }
-    return {-1, -1}; 
+    return {-1, -1};
 }
-void PrintBoard(const vector<vector<int>> &Board)
-{
-    for (const auto &row : Board)
-    {
-        for (const auto &val : row)
-        {
-            cout << val << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
-}
+
 void Print(State *goal)
 {
     State *current = goal;
@@ -86,17 +74,29 @@ void Print(State *goal)
         cout << endl;
     }
 }
+struct CompareState
+{
+    bool operator()(const State *a, const State *b)
+    {
+        if (a->priority == b->priority)
+        {
+            return a->hieuristic > b->hieuristic;
+        }
+        return a->priority > b->priority;
+    }
+};
+
 void a_Star(State *start, State *goal)
 {
-    priority_queue<pair<int, State *>, vector<pair<int, State *>>, greater<pair<int, State *>>> pq;
-    pq.push({0, start});
+    priority_queue<State *, vector<State *>, CompareState> pq;
+    pq.push(start);
     visited[start->getBoard()] = true;
 
     while (!pq.empty())
     {
         auto current = pq.top();
         pq.pop();
-        State *currentState = current.second;
+        State *currentState = current;
         // PrintBoard(currentState->getBoard());
 
         if (currentState->getBoard() == goal->getBoard())
@@ -127,10 +127,11 @@ void a_Star(State *start, State *goal)
 
                 if (!visited[newBoard])
                 {
-                    int newPriority = currentState->getMoves() + Manhatten_Distance(newBoard); // Update priority (can include heuristic)
-                    State *newState = new State(newBoard, newPriority, currentState->getMoves() + 1, currentState);
-                    // PrintBoard(newState->getParent()->getBoard());  
-                    pq.push({newPriority, newState});
+                    int newHieuristic = Manhatten_Distance(newBoard);           // Update heuristic (can include heuristic)
+                    int newPriority = currentState->getMoves() + newHieuristic; // Update priority (can include heuristic)
+                    State *newState = new State(newBoard, newPriority, newHieuristic, currentState->getMoves() + 1, currentState);
+                    // PrintBoard(newState->getParent()->getBoard());
+                    pq.push(newState);
                     visited[newBoard] = true;
                 }
             }
@@ -152,8 +153,6 @@ bool isSolvable(int k, vector<vector<int>> &Board_Input)
         return (first_Condition || second_Condition);
     }
 }
-
-
 
 int main()
 {
@@ -178,14 +177,14 @@ int main()
     if (isSolvable(k, Board_Input))
     {
         // cout << "The puzzle is solvable.\n";
-        State *start = new State(Board_Input, 0, 0);
-        State *goal = new State(Final_Board, 0, 0);
+        State *start = new State(Board_Input, 0, 0, 0);
+        State *goal = new State(Final_Board, 0, 0, 0);
         a_Star(start, goal);
         // Print(start);
     }
     else
     {
-        cout << "The puzzle is not solvable.\n";
+        cout << "Unsolvable puzzle\n";
     }
 
     return 0;
