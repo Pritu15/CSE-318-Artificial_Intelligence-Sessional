@@ -1,6 +1,10 @@
 #include "2105109_Heuristics.h"
 using namespace std;
 map<vector<vector<int>>, bool> visited;
+int noOfExploredStates = 0;
+int noOfExpandedStates = 0;
+typedef float (*HeuristicFunction)(vector<vector<int>> &);
+HeuristicFunction hieuristics = nullptr;
 
 class State
 {
@@ -10,6 +14,7 @@ public:
     int hieuristic;
     int moves;
     State *parent;
+    bool visted = false;
 
     State(vector<vector<int>> Board, int priority, int hieuristic, int moves, State *parent = nullptr)
     {
@@ -90,11 +95,13 @@ void a_Star(State *start, State *goal)
 {
     priority_queue<State *, vector<State *>, CompareState> pq;
     pq.push(start);
+    noOfExploredStates++;
     visited[start->getBoard()] = true;
 
     while (!pq.empty())
     {
         auto current = pq.top();
+        noOfExpandedStates++;
         pq.pop();
         State *currentState = current;
         // PrintBoard(currentState->getBoard());
@@ -127,11 +134,13 @@ void a_Star(State *start, State *goal)
 
                 if (!visited[newBoard])
                 {
-                    int newHieuristic = Manhatten_Distance(newBoard);           // Update heuristic (can include heuristic)
+                    int newHieuristic = hieuristics(newBoard);
+                    // Update heuristic (can include heuristic)
                     int newPriority = currentState->getMoves() + newHieuristic; // Update priority (can include heuristic)
                     State *newState = new State(newBoard, newPriority, newHieuristic, currentState->getMoves() + 1, currentState);
                     // PrintBoard(newState->getParent()->getBoard());
                     pq.push(newState);
+                    noOfExploredStates++;
                     visited[newBoard] = true;
                 }
             }
@@ -154,10 +163,11 @@ bool isSolvable(int k, vector<vector<int>> &Board_Input)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
+    hieuristics = Manhatten_Distance;
 
     int n, k;
     cin >> k;
@@ -174,14 +184,36 @@ int main()
         }
     }
     Final_Board[k - 1][k - 1] = 0;
+    // cout << "Euclidean Distance Heuristic:" << Euclidean_Distance(Board_Input) << "\n";
+    // cout << "Manhatten Distance Heuristic:" << Manhatten_Distance(Board_Input) << "\n";
+    // cout << "Hamming Distance Heuristic:" << Hamming_Distance(Board_Input) << "\n";
+    // cout << "Linear Conflict Heuristic:" << Linear_Conflict(Board_Input) << "\n";
+    // cout << "Inversion Count Heuristic:" << Inversion_Count(Board_Input, k) << "\n";
     if (isSolvable(k, Board_Input))
     {
+
         // cout << "The puzzle is solvable.\n";
+        if (argv[1] == "Hamming_Distance")
+        {
+            hieuristics = Hamming_Distance;
+        }
+        else if (argv[1] == "Manhatten_Distance")
+        {
+            hieuristics = Manhatten_Distance;
+        }
+        else if (argv[1] == "Linear_Conflict")
+        {
+            hieuristics = Linear_Conflict;
+        }
+
         State *start = new State(Board_Input, 0, 0, 0);
         State *goal = new State(Final_Board, 0, 0, 0);
         a_Star(start, goal);
+        cout << "No of explored states: " << noOfExploredStates << "\n";
+        cout << "No of expanded states: " << noOfExpandedStates << "\n";
         // Print(start);
     }
+
     else
     {
         cout << "Unsolvable puzzle\n";

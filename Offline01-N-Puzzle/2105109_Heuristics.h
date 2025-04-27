@@ -1,8 +1,9 @@
 #include <bits/stdc++.h>
 using namespace std;
-int Hamming_Distance(vector<vector<int>> &Board, int n)
+float Hamming_Distance(vector<vector<int>> &Board)
 {
     int count = 0;
+    int n = Board.size();
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -15,7 +16,7 @@ int Hamming_Distance(vector<vector<int>> &Board, int n)
     }
     return count;
 }
-int Manhatten_Distance(vector<vector<int>> &Board)
+float Manhatten_Distance(vector<vector<int>> &Board)
 {
     int count = 0;
     int n = Board.size();
@@ -34,9 +35,14 @@ int Manhatten_Distance(vector<vector<int>> &Board)
     return count;
 }
 
-int Euclidean_Distance(vector<vector<int>> &Board, int n)
+
+
+
+
+float Euclidean_Distance(vector<vector<int>> &Board)
 {
-    int count = 0;
+    float count = 0;
+    int n = Board.size();
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -51,9 +57,11 @@ int Euclidean_Distance(vector<vector<int>> &Board, int n)
     return count;
 }
 
-int Linear_Conflict(vector<vector<int>> &Board, int n)
+float Linear_Conflict(vector<vector<int>> &Board)
 {
     int count = 0;
+    int n = Board.size();
+
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -61,15 +69,40 @@ int Linear_Conflict(vector<vector<int>> &Board, int n)
             if (Board[i][j] != 0)
             {
                 int x = Board[i][j] - 1;
-                if (i == x / n)
+                if (i == x / n) 
                 {
-                    count += abs(j - x % n);
+                    for (int k = j + 1; k < n; k++)
+                    {
+                        if (Board[i][k] != 0)
+                        {
+                            int y = Board[i][k] - 1;
+                            if (i == y / n && x % n > y % n) 
+                            {
+                                count += 1; 
+                            }
+                        }
+                    }
+                }
+                else if (j == x % n) 
+                {
+                    for (int k = i + 1; k < n; k++)
+                    {
+                        if (Board[k][j] != 0)
+                        {
+                            int y = Board[k][j] - 1;
+                            if (j == y % n && x / n > y / n) 
+                            {
+                                count += 1; 
+                            }
+                        }
+                    }
                 }
             }
         }
     }
-    return count + Manhatten_Distance(Board);
+    return (2*count)+Manhatten_Distance(Board);
 }
+
 int Inversion_Count(vector<vector<int>> &Board, int n)
 {
     int count = 0;
