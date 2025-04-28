@@ -55,6 +55,33 @@ pair<int, int> getBlankTilePosition(vector<vector<int>> &Board)
     }
     return {-1, -1};
 }
+struct CompareState
+{
+    bool operator()(const State *a, const State *b)
+    {
+        if (a->priority == b->priority)
+        {
+            return a->hieuristic > b->hieuristic;
+        }
+        return a->priority > b->priority;
+    }
+};
+void FreeMemory(State *state)
+{
+    if (state == nullptr)
+        return;
+    FreeMemory(state->getParent());
+    delete state;
+}
+void FreePriorityQueue(priority_queue<State *, vector<State *>, CompareState> &pq)
+{
+    while (!pq.empty())
+    {
+        State *state = pq.top();
+        pq.pop();
+        delete state;
+    }
+}
 
 void Print(State *goal)
 {
@@ -79,17 +106,6 @@ void Print(State *goal)
         cout << endl;
     }
 }
-struct CompareState
-{
-    bool operator()(const State *a, const State *b)
-    {
-        if (a->priority == b->priority)
-        {
-            return a->hieuristic > b->hieuristic;
-        }
-        return a->priority > b->priority;
-    }
-};
 
 void a_Star(State *start, State *goal)
 {
@@ -110,6 +126,9 @@ void a_Star(State *start, State *goal)
         {
             cout << "Minimum number of moves = " << currentState->getMoves() << "\n\n";
             Print(currentState);
+            FreeMemory(currentState);
+            FreePriorityQueue(pq);
+            delete goal;
             return;
         }
 
@@ -135,10 +154,10 @@ void a_Star(State *start, State *goal)
                 if (!visited[newBoard])
                 {
                     int newHieuristic = hieuristics(newBoard);
-                    // Update heuristic (can include heuristic)
+
                     int newPriority = currentState->getMoves() + newHieuristic; // Update priority (can include heuristic)
                     State *newState = new State(newBoard, newPriority, newHieuristic, currentState->getMoves() + 1, currentState);
-                    // PrintBoard(newState->getParent()->getBoard());
+
                     pq.push(newState);
                     noOfExploredStates++;
                     visited[newBoard] = true;
@@ -192,18 +211,21 @@ int main(int argc, char *argv[])
     if (isSolvable(k, Board_Input))
     {
 
-        // cout << "The puzzle is solvable.\n";
-        if (argv[1] == "Hamming_Distance")
+        if (argv[1] == "Hamming")
         {
             hieuristics = Hamming_Distance;
         }
-        else if (argv[1] == "Manhatten_Distance")
+        else if (argv[1] == "Manhatten")
         {
             hieuristics = Manhatten_Distance;
         }
-        else if (argv[1] == "Linear_Conflict")
+        else if (argv[1] == "Linear")
         {
             hieuristics = Linear_Conflict;
+        }
+        else if (argv[1] == "Euclidean")
+        {
+            hieuristics = Euclidean_Distance;
         }
 
         State *start = new State(Board_Input, 0, 0, 0);
@@ -221,3 +243,11 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+/*
+g++ -fsanitize=address -g 2105109.cpp -o 2105109
+./2105109  Hamming
+./2105109  Linear
+./2105109  Manhatten
+./2105109  Euclidean
+*/
