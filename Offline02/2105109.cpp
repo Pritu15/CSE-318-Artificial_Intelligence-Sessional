@@ -177,21 +177,21 @@ pair<unordered_set<int>, unordered_set<int>> GreedyMaxCut(Graph &graph)
         }
         if (weightX > weightY)
         {
-            X.insert(i);
+            Y.insert(i);
         }
         else
         {
-            Y.insert(i);
+            X.insert(i);
         }
     }
     return {X, Y};
 }
 
-int semiGreedyMaxCut(Graph &graph, double alpha)
+pair<int,vector<int>> semiGreedyMaxCut(Graph &graph, double alpha)
 {
-    int n = graph.getNumVertices();
+    int noOfVertices = graph.getNumVertices();
     const auto &adj = graph.getAdj();
-    vector<int> partitionSet(n, -1);
+    vector<int> partitionSet(noOfVertices, -1);
 
     const auto &edges = graph.getEdges();
     int maxWeight = -1, startU = -1, startV = -1;
@@ -202,7 +202,7 @@ int semiGreedyMaxCut(Graph &graph, double alpha)
     partitionSet[startV] = 1;
 
     set<int> unassignedVertex;
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < noOfVertices; i++)
     {
         if (partitionSet[i] == -1)
             unassignedVertex.insert(i);
@@ -215,36 +215,36 @@ int semiGreedyMaxCut(Graph &graph, double alpha)
         int wmin = INT_MAX, wmax = INT_MIN;
         for (int v : unassignedVertex)
         {
-            int scoreA = 0, scoreB = 0;
+            int sigmaA = 0, sigmaB = 0;
             for (const auto &p : adj[v])
             {
                 int vertex = p.first;
                 int w = p.second;
                 if (partitionSet[vertex] == 0)
-                    scoreB += w;
+                    sigmaA += w;
                 else if (partitionSet[vertex] == 1)
-                    scoreA += w;
+                    sigmaB += w;
             }
-            int val = max(scoreA, scoreB);
-            scores.emplace_back(val, v);
-            wmin = min(wmin, val);
-            wmax = max(wmax, val);
+            int greedyVal = max(sigmaA, sigmaB);
+            scores.emplace_back(greedyVal, v);
+            wmin = min(wmin, min(sigmaA, sigmaB));
+            wmax = max(wmax, greedyVal);
         }
 
         int mu = wmin + alpha * (wmax - wmin);
-        vector<int> rcl;
+        vector<int> RCL;
         for (const auto &p : scores)
         {
             int val = p.first;
             int v = p.second;
             if (val >= mu)
-                rcl.push_back(v);
+                RCL.push_back(v);
         }
 
-        if (rcl.empty())
-            rcl.push_back(scores[0].second);
+        if (RCL.empty())
+            RCL.push_back(scores[0].second);
 
-        int chosen = rcl[rand() % rcl.size()];
+        int chosen = RCL[rand() % RCL.size()];
 
         int scoreA = 0, scoreB = 0;
         for (const auto &p : adj[chosen])
@@ -252,11 +252,11 @@ int semiGreedyMaxCut(Graph &graph, double alpha)
             int nei = p.first;
             int w = p.second;
             if (partitionSet[nei] == 0)
-                scoreB += w;
-            else if (partitionSet[nei] == 1)
                 scoreA += w;
+            else if (partitionSet[nei] == 1)
+                scoreB += w;
         }
-        partitionSet[chosen] = (scoreA > scoreB) ? 0 : 1;
+        partitionSet[chosen] = (scoreA > scoreB) ? 1 : 0;
         unassignedVertex.erase(chosen);
     }
 
@@ -266,7 +266,7 @@ int semiGreedyMaxCut(Graph &graph, double alpha)
         if (partitionSet[e.u] != partitionSet[e.v])
             cutWeight += e.w;
     }
-    return cutWeight;
+    return {cutWeight,partitionSet};
 }
 int calculateCutWeight(Graph &graph, unordered_set<int> &X, unordered_set<int> &Y)
 {
@@ -283,14 +283,14 @@ int calculateCutWeight(Graph &graph, unordered_set<int> &X, unordered_set<int> &
 pair<int, int> LocalSearch(Graph &graph, vector<int> &partitionSet)
 {
     const auto &adj = graph.getAdj();
-    int n = graph.getNumVertices();
+    int noOfVertices = graph.getNumVertices();
     bool isImproved;
     int iterationCount = 0;
 
     do
     {
         isImproved = false;
-        for (int v = 0; v < n; ++v)
+        for (int v = 0; v < noOfVertices; ++v)
         {
             int gain = 0;
             for (const auto &p : adj[v])
@@ -321,78 +321,14 @@ pair<int, int> LocalSearch(Graph &graph, vector<int> &partitionSet)
 
     return {cutWeight, iterationCount};
 }
-pair<int,int> graspMaxCut(Graph &graph, double alpha, int iterations)
+pair<int, int> graspMaxCut(Graph &graph, double alpha, int iterations)
 {
     int bestCut = 0;
     vector<int> bestPartition;
     int totalLocalIterations = 0;
     for (int i = 0; i < iterations; i++)
     {
-        vector<int> partitionSet(graph.getNumVertices(), -1);
-        const auto &edges = graph.getEdges();
-        int maxWeight = -1, startU = -1, startV = -1;
-        const auto &maxEdge = graph.getMaxmiumEdge();
-        startU = maxEdge.first;
-        startV = maxEdge.second;
-        partitionSet[startU] = 0;
-        partitionSet[startV] = 1;
-
-        set<int> unassignedVertex;
-        for (int i = 0; i < graph.getNumVertices(); ++i)
-        {
-            if (partitionSet[i] == -1)
-                unassignedVertex.insert(i);
-        }
-
-        while (!unassignedVertex.empty())
-        {
-            vector<pair<int, int>> scores;
-            int wmin = INT_MAX, wmax = INT_MIN;
-
-            for (int v : unassignedVertex)
-            {
-                int scoreA = 0, scoreB = 0;
-                for (const auto &p : graph.getAdj()[v])
-                {
-                    int nei = p.first;
-                    int w = p.second;
-                    if (partitionSet[nei] == 0)
-                        scoreB += w;
-                    else if (partitionSet[nei] == 1)
-                        scoreA += w;
-                }
-                int val = max(scoreA, scoreB);
-                scores.emplace_back(val, v);
-                wmin = min(wmin, val);
-                wmax = max(wmax, val);
-            }
-
-            int mu = wmin + alpha * (wmax - wmin);
-            vector<int> rcl;
-            for (const auto &[val, v] : scores)
-            {
-                if (val >= mu)
-                    rcl.push_back(v);
-            }
-
-            if (rcl.empty())
-                rcl.push_back(scores[0].second);
-
-            int chosen = rcl[rand() % rcl.size()];
-
-            int scoreA = 0, scoreB = 0;
-            for (const auto &p : graph.getAdj()[chosen])
-            {
-                int nei = p.first;
-                int w = p.second;
-                if (partitionSet[nei] == 0)
-                    scoreB += w;
-                else if (partitionSet[nei] == 1)
-                    scoreA += w;
-            }
-            partitionSet[chosen] = (scoreA > scoreB) ? 0 : 1;
-            unassignedVertex.erase(chosen);
-        }
+        auto [_, partitionSet] = semiGreedyMaxCut(graph, alpha);
         pair<int, int> localResult = LocalSearch(graph, partitionSet);
         int cutWeight = localResult.first;
         int localIterations = localResult.second;
@@ -434,34 +370,32 @@ Graph readGraph(const string &filename)
 int main()
 {
     vector<string> graphFiles;
-    for (int i = 1; i <= 54; i++)
+    int noOfGraphs = 54;
+    for (int i = 1; i <= noOfGraphs; i++)
     {
         graphFiles.push_back("set1/g" + to_string(i) + ".rud");
     }
 
     int randomizedRuns = 30;
-    int localIterations = 5;
-    int graspIterations = 10;
+    int localIterations = 50;
+    int graspIterations = 50;
     double alpha = 0.7;
-    string studentID = "2105109"; 
+    string studentID = "2105109";
 
     ofstream csv(studentID + ".csv");
     csv << "Name,|V|,|E|,Randomized-1,Greedy-1,Semi-greedy-1 (α=" << alpha
         << "),Local-1 Iter,Local-1 Avg,GRASP-1 Iter,GRASP-1 Best,Known Best\n";
 
     unordered_map<string, int> knownBest = {
-        {"G1", 12078}, {"G22", 14123}, {"G43", 7027}, {"G2", 12084}, {"G3", 12077}, {"G14", 3187}, {"G15", 3169}, {"G16", 3172},
-        {"G11", 627}, {"G12", 621}, {"G13", 645}, {"G23", 14129}, {"G24", 14131}, {"G32", 1560}, {"G33", 1537}, {"G34", 1541},
-        {"G35", 8000}, {"G36", 7996}, {"G37", 8009}, {"G44", 7022}, {"G45", 7020}, {"G48", 6000}, {"G49", 6000}, {"G50", 5988}
-    };
+        {"G1", 12078}, {"G22", 14123}, {"G43", 7027}, {"G2", 12084}, {"G3", 12077}, {"G14", 3187}, {"G15", 3169}, {"G16", 3172}, {"G11", 627}, {"G12", 621}, {"G13", 645}, {"G23", 14129}, {"G24", 14131}, {"G32", 1560}, {"G33", 1537}, {"G34", 1541}, {"G35", 8000}, {"G36", 7996}, {"G37", 8009}, {"G44", 7022}, {"G45", 7020}, {"G48", 6000}, {"G49", 6000}, {"G50", 5988}};
 
     for (const auto &filename : graphFiles)
     {
         Graph g = readGraph(filename);
         int n = g.getNumVertices(), m = g.getNumEdges();
         string graphName = filename.substr(filename.find_last_of('/') + 1);
-        graphName = graphName.substr(0, graphName.find('.')); 
-        graphName[0] = toupper(graphName[0]); 
+        graphName = graphName.substr(0, graphName.find('.'));
+        graphName[0] = toupper(graphName[0]);
 
         cout << "Processing " << graphName << "..." << endl;
 
@@ -473,11 +407,12 @@ int main()
         int greedyCut = calculateCutWeight(g, gx, gy);
 
         // Semi-Greedy
-        int semiGreedyCut = semiGreedyMaxCut(g, alpha);
+        auto [semiGreedyCut,partitionSet] = semiGreedyMaxCut(g, alpha);
 
         // Local Search average
         int localCutSum = 0;
-        for (int i = 0; i < localIterations; i++) {
+        for (int i = 0; i < localIterations; i++)
+        {
             vector<int> tempPartition(n, -1);
             auto [su, sv] = g.getMaxmiumEdge();
             tempPartition[su] = 0;
@@ -490,7 +425,7 @@ int main()
             for (int v : unassignedVertex)
                 tempPartition[v] = rand() % 2;
 
-            auto [cut, _] =LocalSearch(g, tempPartition);
+            auto [cut, _] = LocalSearch(g, tempPartition);
             localCutSum += cut;
         }
         int localCutAvg = localCutSum / localIterations;
@@ -498,13 +433,12 @@ int main()
         // GRASP
         auto [graspCut, graspLocalAvg] = graspMaxCut(g, alpha, graspIterations);
 
-       
         string knownBestStr = "-";
-        if (knownBest.count(graphName)) {
+        if (knownBest.count(graphName))
+        {
             knownBestStr = to_string(knownBest[graphName]);
         }
 
-        
         csv << graphName << "," << n << "," << m << ","
             << randomizedAvg << "," << greedyCut << "," << semiGreedyCut << ","
             << localIterations << "," << localCutAvg << ","
