@@ -26,11 +26,11 @@
 }
 
 .cell.red {
-    background-color: #ffcccc;
+    background-color: #FF0000;
 }
 
 .cell.blue {
-    background-color: #ccccff;
+    background-color: #0000FF;
 }
 
 .cell.empty {
@@ -70,6 +70,49 @@ button {
 #game-container {
     max-width: 800px;
     margin: 0 auto;
+}
+/* Add this to your existing styles */
+#game-mode-controls {
+    margin: 15px 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#game-mode-controls button {
+    padding: 8px 16px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+#game-mode-controls button:hover {
+    background-color: #ddd;
+}
+
+#game-mode-controls button.active {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #45a049;
+}
+
+#game-mode-controls button#ai-vs-ai.active {
+    background-color: #2196F3;
+    border-color: #0b7dda;
+}
+
+#game-mode-controls button#restart {
+    background-color: #f44336;
+    color: white;
+    border-color: #d32f2f;
+}
+
+#game-mode-controls button#restart:hover {
+    background-color: #d32f2f;
 }
 
 /* Rest of your existing CSS */

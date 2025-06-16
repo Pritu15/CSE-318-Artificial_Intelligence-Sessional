@@ -3,20 +3,22 @@ import { isMoveApplied, isWinning, getValidMoves } from './board.js';
 import { minimaxAlgo } from './minimax.js';
 
 class Game {
-    constructor() {
+    constructor(number) {
         this.gameMode = null;
         this.board = Array(9).fill().map(() => Array(6).fill().map(() => new Cell()));
         this.currentPlayer = 'R';
         this.gameOver = false;
         this.winner = null;
         this.aiThinking = false;
-        this.aiMoveDelay = 800; // 0.8 second delay between AI moves
+        this.aiMoveDelay = 2000;
         this.aiTimeout = null;
-        this.cells = []; // Store references to all cell elements
+        this.cells = []; 
+        this.number=number;
+        this.i=0;
         
         this.initControls();
-        this.initBoard(); // Initialize DOM elements first
-        this.resetGame(); // Then reset game state
+        this.initBoard(); 
+        this.resetGame(); 
     }
 
     initControls() {
@@ -37,7 +39,7 @@ class Game {
     initBoard() {
         const boardElement = document.getElementById('board');
         boardElement.innerHTML = '';
-        this.cells = []; // Reset cells array
+        this.cells = []; 
         
         for (let r = 0; r < 9; r++) {
             const rowElement = document.createElement('div');
@@ -50,7 +52,7 @@ class Game {
                 cellElement.dataset.col = c;
                 cellElement.addEventListener('click', (e) => this.handleCellClick(e));
                 rowElement.appendChild(cellElement);
-                this.cells.push(cellElement); // Store reference
+                this.cells.push(cellElement);
             }
             boardElement.appendChild(rowElement);
         }
@@ -62,29 +64,30 @@ class Game {
         this.gameMode = mode;
         this.resetGame();
         
-        // Update active button styling
+        
         document.querySelectorAll('#game-mode-controls button').forEach(btn => {
             btn.classList.remove('active');
         });
         document.getElementById(mode).classList.add('active');
         
-        // Start AI moves if needed
+        
         if (mode === 'ai-vs-ai') {
-            this.currentPlayer = 'R'; // Red always starts first
-            this.aiTimeout = setTimeout(() => this.makeAIMove(), this.aiMoveDelay);
-        } else if (mode === 'human-vs-ai' && this.currentPlayer === 'B') {
+            // this.currentPlayer = 'R'; 
+            this.aiTimeout = setTimeout(() => this.makeAIMoveinAIVsAI(), this.aiMoveDelay);
+        } 
+        else if (mode === 'human-vs-ai' && this.currentPlayer === 'B') {
             this.aiTimeout = setTimeout(() => this.makeAIMove(), this.aiMoveDelay);
         }
     }
 
     resetGame() {
-        // Clear any pending AI moves
+        
         if (this.aiTimeout) {
             clearTimeout(this.aiTimeout);
             this.aiTimeout = null;
         }
 
-        // Reset board state
+        
         this.board = Array(9).fill().map(() => Array(6).fill().map(() => new Cell()));
         this.currentPlayer = 'R';
         this.gameOver = false;
@@ -98,7 +101,7 @@ class Game {
     handleCellClick(event) {
         if (this.gameOver || this.aiThinking) return;
         
-        // Check if human is allowed to move in current mode
+        
         if (this.gameMode === 'ai-vs-ai' || 
            (this.gameMode === 'human-vs-ai' && this.currentPlayer === 'B')) {
             return;
@@ -114,7 +117,7 @@ class Game {
             if (!this.gameOver) {
                 this.switchPlayer();
                 
-                // Trigger AI move if needed
+                
                 if ((this.gameMode === 'human-vs-ai' && this.currentPlayer === 'B') || 
                     this.gameMode === 'ai-vs-ai') {
                     this.aiTimeout = setTimeout(() => this.makeAIMove(), this.aiMoveDelay);
@@ -130,7 +133,8 @@ class Game {
         this.updateStatus(`${this.currentPlayer === 'R' ? 'Red' : 'Blue'} AI is thinking...`);
         
         setTimeout(() => {
-            const { move } = minimaxAlgo(this.board, 3, -Infinity, Infinity, true, this.currentPlayer);
+            const heuristicVersion = this.currentPlayer === 'R' ? 1 : 2;
+            const { move } = minimaxAlgo(this.board, 3, -Infinity, Infinity, true, this.currentPlayer,this.number);
             
             if (move[0] !== -1 && move[1] !== -1) {
                 isMoveApplied(this.board, move[0], move[1], this.currentPlayer);
@@ -140,7 +144,7 @@ class Game {
                 if (!this.gameOver) {
                     this.switchPlayer();
                     
-                    // Continue AI moves if in AI vs AI mode
+                    
                     if (this.gameMode === 'ai-vs-ai') {
                         this.aiTimeout = setTimeout(() => this.makeAIMove(), this.aiMoveDelay);
                     }
@@ -151,22 +155,68 @@ class Game {
         }, 300);
     }
 
+    makeAIMoveinAIVsAI() {
+        console.log(`AI vs AI move ${this.i++}`);   
+        if (this.gameOver) return;
+        
+        this.aiThinking = true;
+        this.updateStatus(`${this.currentPlayer === 'R' ? 'Red' : 'Blue'} AI is thinking...`);
+        console.log('AI thinking...');
+        
+        setTimeout(() => {
+            // Use heuristic 1 for Red, heuristic 2 for Blue
+            const heuristicVersion = this.currentPlayer === 'R' ? 1 : 2;
+            const opponent = this.currentPlayer === 'R' ? 'B' : 'R';
+            console.log('Using heuristic version:', heuristicVersion);
+            // console.log('Opponent:', opponent);
+            const { move } = minimaxAlgo(
+                this.board, 
+                3, 
+                -Infinity, 
+                Infinity, 
+                true, 
+                this.currentPlayer,
+                heuristicVersion
+            );
+            console.log('minimax move');
+            
+            if (move[0] !== -1 && move[1] !== -1) {
+                isMoveApplied(this.board, move[0], move[1], this.currentPlayer);
+                this.updateBoard();
+                this.checkGameStatus();
+                
+                if (!this.gameOver) {
+                    this.switchPlayer();
+                    
+                    // Continue with next AI move
+                    this.aiTimeout = setTimeout(
+                        () => this.makeAIMoveinAIVsAI(), 
+                        this.aiMoveDelay
+                    );
+                }
+            }
+            
+             this.aiThinking = false;
+        }, 300);
+    }
     checkGameStatus() {
         const { isWin, winner } = isWinning(this.board);
         if (isWin) {
             this.gameOver = true;
+            console.log('Paichi : ', winner);
             this.winner = winner;
             if (this.aiTimeout) {
                 clearTimeout(this.aiTimeout);
                 this.aiTimeout = null;
             }
             this.updateStatus(`Game Over! ${winner === 'R' ? 'Red' : 'Blue'} wins!`);
-            this.updateBoard(); // Show final winning board
+            this.updateBoard(); 
         }
     }
 
     switchPlayer() {
         this.currentPlayer = this.currentPlayer === 'R' ? 'B' : 'R';
+        console.log('Player switched to:', this.currentPlayer);
         this.updateStatus(`Current Player: ${this.currentPlayer === 'R' ? 'Red' : 'Blue'}`);
     }
 
@@ -192,5 +242,5 @@ class Game {
 
 // Initialize the game when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new Game();
+    new Game(2);
 });
